@@ -30,11 +30,6 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/edit-user/[id]": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/edit-user/[id].js"
-    ],
     "/manage-users": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

@@ -1,11 +1,12 @@
-// src/pages/index.jsx
+// // src/pages/index.jsx
+// export default Dashboard;
 
 import React, { useEffect, useState } from 'react';
 import { getAlerts } from '../services/api';
 import AlertList from '../components/AlertList';
 import Header from '../components/Header';
 import { Container, Typography, CircularProgress, Alert as MuiAlert, Grid } from '@mui/material';
-import FaceScan from '../components/FaceScan';
+import FaceAutoScanBox from '../components/FaceAutoScanBox';
 
 function Dashboard() {
     const [alerts, setAlerts] = useState([]);
@@ -37,7 +38,7 @@ function Dashboard() {
                 </Typography>
                 <Grid container spacing={4}>
                     <Grid item xs={12} md={6}>
-                        <FaceScan />
+                        <FaceAutoScanBox />
                     </Grid>
                     <Grid item xs={12} md={6}>
                         {loading && <CircularProgress />}
@@ -51,3 +52,4 @@ function Dashboard() {
 }
 
 export default Dashboard;
+

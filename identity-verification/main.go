@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -515,21 +516,81 @@ func getUserSnapshotsHandler(c *gin.Context) {
 		return
 	}
 
-	// Đọc các ảnh thành base64
-	var snapshots []string
+	// Lấy thông tin các file và sắp xếp theo thời gian sửa đổi
+	type fileInfo struct {
+		Path string
+		Time time.Time
+	}
+
+	var fileInfos []fileInfo
 	for _, file := range files {
 		if !file.IsDir() {
 			filePath := fmt.Sprintf("%s/%s", snapshotDir, file.Name())
-			data, err := os.ReadFile(filePath)
+			info, err := os.Stat(filePath)
 			if err == nil {
-				base64Image := base64.StdEncoding.EncodeToString(data)
-				snapshots = append(snapshots, base64Image)
+				fileInfos = append(fileInfos, fileInfo{
+					Path: filePath,
+					Time: info.ModTime(),
+				})
 			}
+		}
+	}
+
+	// Sắp xếp fileInfos theo thời gian sửa đổi giảm dần
+	sort.Slice(fileInfos, func(i, j int) bool {
+		return fileInfos[i].Time.After(fileInfos[j].Time)
+	})
+
+	// Chỉ lấy 3 ảnh gần nhất
+	var snapshots []string
+	for i, file := range fileInfos {
+		if i >= 3 { // Chỉ lấy tối đa 3 ảnh
+			break
+		}
+		data, err := os.ReadFile(file.Path)
+		if err == nil {
+			base64Image := base64.StdEncoding.EncodeToString(data)
+			snapshots = append(snapshots, base64Image)
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"snapshots": snapshots})
 }
+
+// lay het anh
+// func getUserSnapshotsHandler(c *gin.Context) {
+// 	userID := c.Param("id")
+
+// 	// Tìm user
+// 	var user User
+// 	if err := db.First(&user, userID).Error; err != nil {
+// 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+// 		return
+// 	}
+
+// 	// Đọc ảnh từ thư mục snapshot
+// 	snapshotDir := fmt.Sprintf("./uploads/users/%d", user.ID)
+// 	files, err := os.ReadDir(snapshotDir)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve snapshots"})
+// 		return
+// 	}
+
+// 	// Đọc các ảnh thành base64
+// 	var snapshots []string
+// 	for _, file := range files {
+// 		if !file.IsDir() {
+// 			filePath := fmt.Sprintf("%s/%s", snapshotDir, file.Name())
+// 			data, err := os.ReadFile(filePath)
+// 			if err == nil {
+// 				base64Image := base64.StdEncoding.EncodeToString(data)
+// 				snapshots = append(snapshots, base64Image)
+// 			}
+// 		}
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"snapshots": snapshots})
+// }
 
 func updateUserHandler(c *gin.Context) {
 	userID := c.Param("id")
