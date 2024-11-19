@@ -29,6 +29,7 @@ type User struct {
 	Name          string
 	FaceEmbedding pq.Float64Array `gorm:"type:float8[]"`
 	Role          string
+	SnapshotPath  string `json:"snapshot_path"`
 	LastSeen      time.Time
 }
 
@@ -112,6 +113,8 @@ func main() {
 	router.GET("/alerts", getAlertsHandler)
 	router.POST("/add_user", addUserHandler)
 	router.GET("/users", getUsersHandler) // Thêm API để lấy danh sách người dùng
+	router.GET("/users/:id/snapshots", getUserSnapshotsHandler)
+	router.PUT("/users/:id", updateUserHandler)
 
 	// Chạy server trên cổng 8080
 	if err := router.Run(":8080"); err != nil {
@@ -241,6 +244,20 @@ func verifyFaceHandler(c *gin.Context) {
 			log.Printf("Error updating LastSeen: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update LastSeen"})
 			return
+		}
+
+		// Lưu snapshot
+		if matchedUser.ID != 0 {
+			snapshotDir := fmt.Sprintf("./uploads/users/%d", matchedUser.ID)
+			os.MkdirAll(snapshotDir, os.ModePerm)
+
+			timestamp := time.Now().Format("20060102_150405")
+			filename := fmt.Sprintf("%s/%s_%s", snapshotDir, "snapshot", timestamp)
+			err := os.WriteFile(filename+".jpg", imageBytes, os.ModePerm)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save snapshot"})
+				return
+			}
 		}
 
 		c.JSON(http.StatusOK, VerificationResponse{
@@ -476,4 +493,91 @@ func cosineSimilarity(a, b pq.Float64Array) float64 {
 		return 0.0
 	}
 	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
+}
+
+func getUserSnapshotsHandler(c *gin.Context) {
+	userID := c.Param("id")
+
+	// Tìm user
+	var user User
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Đọc ảnh từ thư mục snapshot
+	snapshotDir := fmt.Sprintf("./uploads/users/%d", user.ID)
+	files, err := os.ReadDir(snapshotDir)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve snapshots"})
+		return
+	}
+
+	// Đọc các ảnh thành base64
+	var snapshots []string
+	for _, file := range files {
+		if !file.IsDir() {
+			filePath := fmt.Sprintf("%s/%s", snapshotDir, file.Name())
+			data, err := os.ReadFile(filePath)
+			if err == nil {
+				base64Image := base64.StdEncoding.EncodeToString(data)
+				snapshots = append(snapshots, base64Image)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"snapshots": snapshots})
+}
+
+func updateUserHandler(c *gin.Context) {
+	userID := c.Param("id")
+
+	var req struct {
+		Name         string `json:"name"`
+		Role         string `json:"role"`
+		FaceSnapshot string `json:"face_snapshot"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var user User
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Cập nhật thông tin
+	user.Name = req.Name
+	user.Role = req.Role
+
+	if req.FaceSnapshot != "" {
+		// Lưu snapshot mới
+		snapshotDir := fmt.Sprintf("./uploads/users/%d", user.ID)
+		os.MkdirAll(snapshotDir, os.ModePerm)
+
+		timestamp := time.Now().Format("20060102_150405")
+		filename := fmt.Sprintf("%s/%s_%s.jpg", snapshotDir, "snapshot", timestamp)
+
+		decodedImage, err := decodeBase64Image(req.FaceSnapshot)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid face snapshot"})
+			return
+		}
+
+		err = os.WriteFile(filename, decodedImage, os.ModePerm)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save snapshot"})
+			return
+		}
+	}
+
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully", "user": user})
 }

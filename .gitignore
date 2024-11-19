@@ -2,3 +2,5 @@ frontend/node_modules
 .idea
 frontend/.next
 frontend/.next/*
+frontend/.next
+/frontend/.next

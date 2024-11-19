@@ -9,11 +9,6 @@ const apiClient = axios.create({
 });
 
 // Ví dụ: API để xác minh khuôn mặt
-// export const verifyFace = (embedding) => {
-//     //console.log("embedding", embedding)
-
-//     return apiClient.post('/verify_face', { embedding });
-// };
 export const verifyFace = (file) => {
     const formData = new FormData();
     formData.append('image', file); // 'image' là key mà backend mong đợi
@@ -23,8 +18,6 @@ export const verifyFace = (file) => {
             'Content-Type': 'multipart/form-data',
         },
     });
-
-    console.log("data", data)
 
     return data
 };
@@ -44,6 +37,22 @@ export const addUser = (userData) => {
 export const getUsers = () => {
     return apiClient.get('/users');
 };
+
+export const getUserSnapshots = (userId) => {
+    return apiClient.get(`/users/${userId}/snapshots`);
+};
+
+
+export const getUserById = (id) => {
+    return apiClient.get(`/users/${id}`);
+};
+
+
+// API để cập nhật thông tin người dùng
+export const updateUser = (id, userData) => {
+    return apiClient.put(`/users/${id}`, userData);
+};
+
 
 // Thêm các API khác tùy thuộc vào backend của bạn
 export default apiClient;

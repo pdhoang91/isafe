@@ -1,9 +1,9 @@
-// src/pages/edit-user/[id].jsx
+// // src/pages/edit-user/[id].jsx
 import React, { useEffect, useState } from 'react';
-import { getUserById, updateUser } from '../../services/api';
+import { getUserById, updateUser, getUserSnapshots } from '../../services/api';
 import { useRouter } from 'next/router';
 import Header from '../../components/Header';
-import { Container, Typography, TextField, Button, Select, MenuItem, InputLabel, FormControl, Alert } from '@mui/material';
+import { Container, Typography, TextField, Button, Select, MenuItem, InputLabel, FormControl, Alert, Avatar, CircularProgress } from '@mui/material';
 
 function EditUser() {
     const router = useRouter();
@@ -11,20 +11,34 @@ function EditUser() {
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
     const [image, setImage] = useState(null);
+    const [snapshots, setSnapshots] = useState([]);
+    const [loadingSnapshots, setLoadingSnapshots] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
         if (id) {
+            // Lấy thông tin người dùng
             getUserById(id)
-                .then(response => {
+                .then((response) => {
                     const user = response.data;
                     setName(user.name);
                     setRole(user.role);
-                    // Nếu cần, xử lý face_snapshot
                 })
-                .catch(error => {
+                .catch(() => {
                     setError('Failed to fetch user data.');
+                });
+
+            // Lấy snapshots
+            setLoadingSnapshots(true);
+            getUserSnapshots(id)
+                .then((response) => {
+                    setSnapshots(response.data.snapshots || []);
+                    setLoadingSnapshots(false);
+                })
+                .catch(() => {
+                    setError('Failed to fetch user snapshots.');
+                    setLoadingSnapshots(false);
                 });
         }
     }, [id]);
@@ -43,7 +57,7 @@ function EditUser() {
         if (image) {
             const reader = new FileReader();
             reader.readAsDataURL(image);
-            await new Promise(resolve => {
+            await new Promise((resolve) => {
                 reader.onloadend = () => {
                     base64Image = reader.result.split(',')[1]; // Remove data prefix
                     resolve();
@@ -57,12 +71,12 @@ function EditUser() {
         }
 
         updateUser(id, userData)
-            .then(response => {
+            .then(() => {
                 setSuccess(true);
                 setError(null);
                 router.push('/manage-users');
             })
-            .catch(error => {
+            .catch(() => {
                 setError('Failed to update user.');
                 setSuccess(false);
             });
@@ -116,6 +130,23 @@ function EditUser() {
                         Update User
                     </Button>
                 </form>
+                <Typography variant="h6" gutterBottom style={{ marginTop: '24px' }}>
+                    Snapshots
+                </Typography>
+                {loadingSnapshots ? (
+                    <CircularProgress />
+                ) : snapshots.length > 0 ? (
+                    snapshots.map((snapshot, index) => (
+                        <Avatar
+                            key={index}
+                            src={`data:image/jpeg;base64,${snapshot}`}
+                            alt={`Snapshot ${index}`}
+                            sx={{ width: 56, height: 56, margin: '4px' }}
+                        />
+                    ))
+                ) : (
+                    <Typography>No snapshots available.</Typography>
+                )}
             </Container>
         </>
     );

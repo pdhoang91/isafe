@@ -13,9 +13,6 @@ function Header() {
                 <Link href="/" passHref>
                     <Button color="inherit">Dashboard</Button>
                 </Link>
-                <Link href="/add-user" passHref>
-                    <Button color="inherit">Add User</Button>
-                </Link>
                 <Link href="/manage-users" passHref>
                     <Button color="inherit">Manage Users</Button>
                 </Link>
