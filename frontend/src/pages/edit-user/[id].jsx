@@ -22,26 +22,28 @@ function EditUser() {
             // Lấy thông tin người dùng
             setLoadingUser(true);
             getUserById(id)
-                .then((response) => {
-                    const user = response.data;
-                    setName(user.name);
-                    setRole(user.role);
-                    setLoadingUser(false);
-                })
-                .catch(() => {
-                    setError('Failed to fetch user data.');
-                    setLoadingUser(false);
-                });
-
-            // Lấy snapshots
+            .then((response) => {
+                const user = response.data;
+                console.log("Fetched user:", user);
+        
+                setName(user.Name || ''); // Đảm bảo giá trị mặc định
+                setRole(user.Role || ''); // Đảm bảo giá trị mặc định
+                setCurrentSnapshot(user.face_snapshot || null); // Gán snapshot nếu có
+                setLoadingUser(false);
+            })
+            .catch((err) => {
+                console.error("Error fetching user:", err);
+                setError('Failed to fetch user data.');
+                setLoadingUser(false);
+            });
+        
+    
+            // Lấy danh sách snapshots
             setLoadingSnapshots(true);
             getUserSnapshots(id)
                 .then((response) => {
                     const snapshotsData = response.data.snapshots || [];
                     setSnapshots(snapshotsData);
-                    if (snapshotsData.length > 0) {
-                        setCurrentSnapshot(snapshotsData[0]); // Đặt snapshot đầu tiên làm mặc định
-                    }
                     setLoadingSnapshots(false);
                 })
                 .catch(() => {
@@ -113,7 +115,7 @@ function EditUser() {
                             <FormControl fullWidth margin="normal" required>
                                 <InputLabel>Role</InputLabel>
                                 <Select
-                                    value={role}
+                                    value={role || ''} // Đảm bảo giá trị không phải là undefined
                                     onChange={(e) => setRole(e.target.value)}
                                     label="Role"
                                 >
@@ -122,6 +124,7 @@ function EditUser() {
                                     <MenuItem value="visitor">Visitor</MenuItem>
                                 </Select>
                             </FormControl>
+
                             <div style={{ marginBottom: '16px' }}>
                                 {currentSnapshot && (
                                     <Avatar
