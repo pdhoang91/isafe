@@ -53,6 +53,12 @@ export const updateUser = (id, userData) => {
     return apiClient.put(`/users/${id}`, userData);
 };
 
+// API để xóa người dùng
+export const deleteUser = (id) => {
+    return apiClient.delete(`/users/${id}`);
+};
+
+
 
 // Thêm các API khác tùy thuộc vào backend của bạn
 export default apiClient;

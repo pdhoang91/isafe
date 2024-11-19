@@ -61,7 +61,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Avatar, CircularProgress } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import { getUserSnapshots } from '../services/api';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { deleteUser, getUserSnapshots } from '../services/api';
 
 function UserList({ users }) {
     const [snapshots, setSnapshots] = useState({});
@@ -91,6 +92,19 @@ function UserList({ users }) {
     if (!users || users.length === 0) {
         return <div>No users available.</div>;
     }
+
+    const handleDelete = (id) => {
+        if (window.confirm('Are you sure you want to delete this user?')) {
+            deleteUser(id)
+                .then(() => {
+                    onUserDeleted(); // Gọi callback để cập nhật danh sách
+                })
+                .catch((error) => {
+                    console.error('Failed to delete user:', error);
+                    ///alert('Failed to delete user.');
+                });
+        }
+    };
 
     return (
         <TableContainer component={Paper}>
@@ -142,6 +156,16 @@ function UserList({ users }) {
                                         href={`/edit-user/${uniqueKey}`}
                                     >
                                         Edit
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        color="secondary"
+                                        size="small"
+                                        startIcon={<DeleteIcon />}
+                                        onClick={() => handleDelete(uniqueKey)}
+                                        style={{ marginLeft: '8px' }}
+                                    >
+                                        Delete
                                     </Button>
                                 </TableCell>
                             </TableRow>

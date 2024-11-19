@@ -115,6 +115,8 @@ func main() {
 	router.GET("/users", getUsersHandler) // Thêm API để lấy danh sách người dùng
 	router.GET("/users/:id/snapshots", getUserSnapshotsHandler)
 	router.PUT("/users/:id", updateUserHandler)
+	router.DELETE("/users/:id", deleteUserHandler)
+	router.GET("/users/:id", getUserByIdHandler)
 
 	// Chạy server trên cổng 8080
 	if err := router.Run(":8080"); err != nil {
@@ -580,4 +582,27 @@ func updateUserHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully", "user": user})
+}
+
+func deleteUserHandler(c *gin.Context) {
+	userID := c.Param("id")
+
+	if err := db.Delete(&User{}, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+}
+
+func getUserByIdHandler(c *gin.Context) {
+	userID := c.Param("id")
+
+	var user User
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }

@@ -1,4 +1,3 @@
-// // src/pages/edit-user/[id].jsx
 import React, { useEffect, useState } from 'react';
 import { getUserById, updateUser, getUserSnapshots } from '../../services/api';
 import { useRouter } from 'next/router';
@@ -10,8 +9,10 @@ function EditUser() {
     const { id } = router.query;
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
-    const [image, setImage] = useState(null);
+    const [image, setImage] = useState(null); // Ảnh mới upload
+    const [currentSnapshot, setCurrentSnapshot] = useState(null); // Ảnh snapshot hiện tại
     const [snapshots, setSnapshots] = useState([]);
+    const [loadingUser, setLoadingUser] = useState(false);
     const [loadingSnapshots, setLoadingSnapshots] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
@@ -19,21 +20,28 @@ function EditUser() {
     useEffect(() => {
         if (id) {
             // Lấy thông tin người dùng
+            setLoadingUser(true);
             getUserById(id)
                 .then((response) => {
                     const user = response.data;
                     setName(user.name);
                     setRole(user.role);
+                    setLoadingUser(false);
                 })
                 .catch(() => {
                     setError('Failed to fetch user data.');
+                    setLoadingUser(false);
                 });
 
             // Lấy snapshots
             setLoadingSnapshots(true);
             getUserSnapshots(id)
                 .then((response) => {
-                    setSnapshots(response.data.snapshots || []);
+                    const snapshotsData = response.data.snapshots || [];
+                    setSnapshots(snapshotsData);
+                    if (snapshotsData.length > 0) {
+                        setCurrentSnapshot(snapshotsData[0]); // Đặt snapshot đầu tiên làm mặc định
+                    }
                     setLoadingSnapshots(false);
                 })
                 .catch(() => {
@@ -90,45 +98,57 @@ function EditUser() {
                     Edit User
                 </Typography>
                 <form onSubmit={handleSubmit}>
-                    <TextField
-                        label="Name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        fullWidth
-                        margin="normal"
-                        required
-                    />
-                    <FormControl fullWidth margin="normal" required>
-                        <InputLabel>Role</InputLabel>
-                        <Select
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            label="Role"
-                        >
-                            <MenuItem value="student">Student</MenuItem>
-                            <MenuItem value="teacher">Teacher</MenuItem>
-                            <MenuItem value="visitor">Visitor</MenuItem>
-                        </Select>
-                    </FormControl>
-                    <Button
-                        variant="contained"
-                        component="label"
-                        style={{ marginTop: '16px' }}
-                    >
-                        Upload New Face Image
-                        <input
-                            type="file"
-                            accept="image/*"
-                            hidden
-                            onChange={handleImageChange}
-                        />
-                    </Button>
-                    {image && <Typography variant="body2">{image.name}</Typography>}
-                    {error && <Alert severity="error" style={{ marginTop: '16px' }}>{error}</Alert>}
-                    {success && <Alert severity="success" style={{ marginTop: '16px' }}>User updated successfully!</Alert>}
-                    <Button type="submit" variant="contained" color="primary" style={{ marginTop: '16px' }}>
-                        Update User
-                    </Button>
+                    {loadingUser ? (
+                        <CircularProgress />
+                    ) : (
+                        <>
+                            <TextField
+                                label="Name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                fullWidth
+                                margin="normal"
+                                required
+                            />
+                            <FormControl fullWidth margin="normal" required>
+                                <InputLabel>Role</InputLabel>
+                                <Select
+                                    value={role}
+                                    onChange={(e) => setRole(e.target.value)}
+                                    label="Role"
+                                >
+                                    <MenuItem value="student">Student</MenuItem>
+                                    <MenuItem value="teacher">Teacher</MenuItem>
+                                    <MenuItem value="visitor">Visitor</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <div style={{ marginBottom: '16px' }}>
+                                {currentSnapshot && (
+                                    <Avatar
+                                        src={`data:image/jpeg;base64,${currentSnapshot}`}
+                                        alt="Current Snapshot"
+                                        sx={{ width: 128, height: 128, marginBottom: '16px' }}
+                                    />
+                                )}
+                                <Button
+                                    variant="contained"
+                                    component="label"
+                                >
+                                    Upload New Face Image
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        onChange={handleImageChange}
+                                    />
+                                </Button>
+                                {image && <Typography variant="body2">{image.name}</Typography>}
+                            </div>
+                            <Button type="submit" variant="contained" color="primary">
+                                Update User
+                            </Button>
+                        </>
+                    )}
                 </form>
                 <Typography variant="h6" gutterBottom style={{ marginTop: '24px' }}>
                     Snapshots
